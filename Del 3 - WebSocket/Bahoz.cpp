@@ -1,10 +1,10 @@
+Bassam Salou
 #include <iostream>
 
 #include <restinio/all.hpp>
 
 #include <json_dto/pub.hpp>
 
-// Del 3
 #include <restinio/websocket/websocket.hpp>
 
 #include <fmt/format.h>
@@ -16,11 +16,13 @@ using ws_registry_t = std::map<std::uint64_t, rws::ws_handle_t>;
 using traits_t =
     restinio::traits_t<restinio::asio_timer_manager_t,
                        restinio::single_threaded_ostream_logger_t, router_t>;
-                       
+
+// Definition af datastrukturen til håndtering af vejrinformation
 struct weather_t
 {
 	weather_t() = default;
 
+	// Konstruktør med parametre til initialisering af vejrinformation.
 	weather_t(
 		std::string ID, 
         std::string Date,
@@ -40,6 +42,7 @@ struct weather_t
 		,	m_Humidity{ std::move( Humidity ) }    
 	{}
 
+	// JSON I/O-metode til at læse og skrive vejrdata fra/to JSON-format.
 	template < typename JSON_IO >
 	void
 	json_io( JSON_IO & io )
@@ -55,6 +58,7 @@ struct weather_t
 			& json_dto::mandatory( "Humidity", m_Humidity );
 	}
 
+	// Attributter til lagring af vejrdata.
 	std::string m_ID;
 	std::string m_Date;
 	std::string m_Time;
@@ -67,9 +71,11 @@ struct weather_t
 
 using weather_collection_t = std::vector< weather_t >;
 
+// Klasse til håndtering af HTTP-anmodninger relateret til vejrdata.
 class weather_handler_t
 {
 public :
+	// Konstruktør med en reference til en samling af vejrdata.
 	explicit weather_handler_t( weather_collection_t & weathers )
 		:	m_weathers( weathers )
 	{}
@@ -77,6 +83,7 @@ public :
 	weather_handler_t( const weather_handler_t & ) = delete;
 	weather_handler_t( weather_handler_t && ) = delete;
 
+	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/". Returnerer en liste over alle vejrdata.
 	auto on_weather_list(
 		const restinio::request_handle_t& req, rr::route_params_t ) const
 	{
@@ -87,7 +94,7 @@ public :
 		return resp.done();
 	}
 
-
+	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/three". Returnerer de seneste tre vejrposter.
 	auto on_three_get(const restinio::request_handle_t &req, rr::route_params_t params)
 	{
 		auto resp = init_resp(req->create_response());
@@ -97,6 +104,8 @@ public :
 			std::vector<weather_t> weather_three;
             
 			int i=0;
+
+			// Itererer gennem de seneste tre vejrposter.
 			for (auto iter = m_weathers.rbegin(); iter != m_weathers.rend() && (i !=3); ++iter, ++i) 
 			{
 			  weather_three.push_back(*iter);
@@ -112,14 +121,18 @@ public :
 		return resp.done();
 	}
 
+	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/Date/:Date". Returnerer vejrdata for en bestemt dato.
 	auto on_date_get(const restinio::request_handle_t& req, rr::route_params_t params )
 	{
 		auto resp = init_resp( req->create_response() );
 		try
 		{
 			std::vector<weather_t> weather_date;
+
+			// Henter dato-parameteren fra anmodningen.
 			auto Date = restinio::utils::unescape_percent_encoding( params[ "Date" ] );
 			
+			// Filtrer vejrdata baseret på den angivne dato.
 			for( std::size_t i=0; i < m_weathers.size(); ++i)
 			{
 				const auto & b = m_weathers[i];
@@ -138,14 +151,17 @@ public :
 		return resp.done();
 	}
 	
+	// Handler-funktion for at håndtere HTTP POST-anmodninger til at tilføje ny vejrdata.
     auto on_new_weather(const restinio::request_handle_t &req, rr::route_params_t)
     {
 		auto resp = init_resp(req->create_response());
 
 		try
 		{
+		  // Analyserer JSON-data fra anmodningen og tilføjer det til vejrdatasamlingen.
 		  m_weathers.emplace_back(json_dto::from_json<weather_t>(req->body()));
-
+		  
+		  // Sender besked til WebSocket-klienter om den nye data.
 		  sendMessage("POST: id =" + json_dto::from_json<weather_t>(req->body()).m_ID);
 		}
 		catch (const std::exception &)
@@ -156,6 +172,7 @@ public :
 		return resp.done();
     }
 	
+	// Handler-funktion for at håndtere HTTP PUT-anmodninger til at opdatere eksisterende vejrdata.
 	auto on_weather_update(
 		const restinio::request_handle_t& req, rr::route_params_t params )
 	{
@@ -165,6 +182,7 @@ public :
 
 		try
 		{
+			// Henter vejrdata fra anmodningen og opdaterer den eksisterende data baseret på ID.
 			auto b = json_dto::from_json< weather_t >( req->body() );
 			
 			if (0 != ID && ID <= m_weathers.size())
@@ -180,10 +198,12 @@ public :
 		return resp.done();
 	}
 
+	// Handler-funktion for at håndtere WebSocket-opdateringer.
 	auto on_live_update(const restinio::request_handle_t &req, rr::route_params_t params)
     {
         if (restinio::http_connection_header_t::upgrade==req ->header().connection() )
         {
+			// Opgraderer forbindelsen til WebSocket.
             auto wsh = rws::upgrade<traits_t>(*req, rws::activation_t::immediate, [this] (auto wsh, auto m)
             {
                 if (rws::opcode_t::text_frame==m->opcode()||rws::opcode_t::binary_frame == m->opcode() ||rws::opcode_t::continuation_frame == m->opcode())
@@ -192,22 +212,33 @@ public :
                 }
                 else if (rws::opcode_t::ping_frame==m ->opcode() )
                 {
+					// Svarer på ping-meddelelser med en pong-meddelelse.
                     auto resp=*m;
                     resp.set_opcode(rws::opcode_t::pong_frame);
                     wsh ->send_message(resp);
                 }
                 else if (rws::opcode_t::connection_close_frame== m ->opcode() )
                 {
+					// Fjerner WebSocket-forbindelsen fra registret ved lukning.
                     m_registry.erase(wsh ->connection_id() );
                 }
             });
+
+		// Tilføjer WebSocket-håndtag til registret.
         m_registry.emplace(wsh -> connection_id(), wsh);
+
+		// Initialiserer og sender HTTP-respons uden krop.
         init_resp(req ->create_response() ).done();
+
+		// Angiver, at anmodningen er accepteret.
         return restinio::request_accepted();
         }
+
+		// Angiver, at anmodningen er afvist.
         return restinio::request_rejected();
     }
 	
+	// Handler-funktion for at håndtere HTTP DELETE-anmodninger til at slette vejrdata.
 	auto on_weather_delete(
 		const restinio::request_handle_t& req, rr::route_params_t params )
 	{
@@ -218,6 +249,7 @@ public :
         {
 			if (0 != ID && ID <= m_weathers.size())
 			{
+				// Sletter vejrdata baseret på ID.
 				const auto &b = m_weathers[ID - 1];
 				m_weathers.erase(m_weathers.begin() + (ID - 1));
 			}
@@ -230,21 +262,25 @@ public :
         return resp.done();
     }
 
-auto options(restinio::request_handle_t req, restinio::router::route_params_t)
-{
-    const auto methods="OPTIONS, GET, POST, PUT, PATCH, DELETE";
-    auto resp=init_resp(req ->create_response() );
-    resp.append_header(restinio::http_field::access_control_allow_methods,methods);
-    resp.append_header(restinio::http_field::access_control_allow_headers,"content-type");
-    resp.append_header(restinio::http_field::access_control_max_age, "86400");
-    return resp.done();
-}
+	// Handler-funktion for at håndtere HTTP OPTIONS-anmodninger.
+	auto options(restinio::request_handle_t req, restinio::router::route_params_t)
+	{
+		// Svarer på HTTP OPTIONS-anmodninger med CORS-headers.
+		const auto methods="OPTIONS, GET, POST, PUT, PATCH, DELETE";
+		auto resp=init_resp(req ->create_response() );
+		resp.append_header(restinio::http_field::access_control_allow_methods,methods);
+		resp.append_header(restinio::http_field::access_control_allow_headers,"content-type");
+		resp.append_header(restinio::http_field::access_control_max_age, "86400");
+		return resp.done();
+	}
     
 private :
+	// Reference til samlingen af vejrdata.
 	weather_collection_t & m_weathers;
-    
+	// Registry for WebSocket-håndtag.
     ws_registry_t   m_registry;
 
+	// Marker responsen som en fejl ved en ugyldig anmodning.
 	template < typename RESP >
 	static RESP
 	init_resp( RESP resp )
@@ -264,6 +300,7 @@ private :
 		resp.header().status_line( restinio::status_bad_request() );
 	}
 
+	// Send besked til alle tilsluttede WebSocket-klienter.
     void sendMessage(std::string message)
     {
         for (auto [k, v] : m_registry)
@@ -334,11 +371,13 @@ int main()
 				restinio::single_threaded_ostream_logger_t,
 				router_t >;
 
+		// Opret en samling af vejrdata med et eksempel.
 		weather_collection_t weather_collection
 		{
         {"1", "20211105", "12:15", "Aarhus N", "13.692", "19.438", "13.1", "70%"}
         };            
 
+		// Kør HTTP-serveren med de definerede træk og indstillinger.
 		restinio::run(
 			restinio::on_this_thread< traits_t >()
 				.address( "localhost" )

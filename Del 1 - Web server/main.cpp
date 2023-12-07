@@ -17,7 +17,8 @@ struct weatherStation_t
         std::string ID,
         std::string Date,
         std::string Time,
-        std::string locationName,
+		// Place er inkorporeret heri, giver mere simpel kode
+        std::string PlaceName,
         std::string Lat,
         std::string Lon,
         float Temperature,
@@ -25,7 +26,7 @@ struct weatherStation_t
         : m_ID{std::move(ID)},
           m_Date{std::move(Date)},
           m_Time{std::move(Time)},
-          m_locationName{std::move(locationName)},
+          m_PlaceName{std::move(PlaceName)},
           m_Lat{std::move(Lat)},
           m_Lon{std::move(Lon)},
           m_Temperature{Temperature},
@@ -41,7 +42,7 @@ struct weatherStation_t
             & json_dto::mandatory("ID", m_ID)
             & json_dto::mandatory("Date", m_Date)
             & json_dto::mandatory("Time", m_Time)
-            & json_dto::mandatory("LocationName", m_locationName)
+            & json_dto::mandatory("PlaceName", m_PlaceName)
             & json_dto::mandatory("Lat", m_Lat)
             & json_dto::mandatory("Lon", m_Lon)
             & json_dto::mandatory("Temperature", m_Temperature)
@@ -52,7 +53,7 @@ struct weatherStation_t
     std::string m_ID;
     std::string m_Date;
     std::string m_Time;
-    std::string m_locationName;
+    std::string m_PlaceName;
     std::string m_Lat;
     std::string m_Lon;
     float m_Temperature;
@@ -87,11 +88,11 @@ public:
         		resp.append_body("ID: " + station.m_ID + "\n" +
                         		" Date: " + station.m_Date + "\n" +
                          		" Time: " + station.m_Time + "\n" +
-                         		" PlaceName: " + station.m_locationName + "\n" +
+                         		" PlaceName: " + station.m_PlaceName + "\n" +
                          		" Lat: " + station.m_Lat + "\n" +
                          		" Lon: " + station.m_Lon + "\n" +
                          		" Temperature: " + std::to_string(station.m_Temperature) + "\n" +// konvertering fra float til string
-                         		" Humidity: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string
+                         		" Humidity in %: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string
 			}
 			return resp.done();			
     	}
@@ -153,7 +154,7 @@ int main()
 
         // Initial weather data
         weatherStation_collection_t weatherStation_collection{
-            {"1", "20211105", "12:15", "Aarhus N", "13.692", "19.438", 13.1, 70}
+            {"1", "20231207", "12:15", "Aarhus N", "13.692", "19.438", 13.1, 70}
         };
 
         // Kør restinio serveren med definerede traits og konfiguration
