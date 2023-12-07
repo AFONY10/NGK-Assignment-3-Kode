@@ -76,10 +76,7 @@ public:
 		{
 			auto resp = init_resp(req->create_response());
 
-			// JSON-formateret svar.
-    		resp.set_body(json_dto::to_json(m_weatherStation));
-			
-			/*// Menneskevenlig læsning.
+			// Menneskevenlig læsning/hardcoding af output
 			resp.set_body("weatherStation collection (weatherStation count: " +
                   std::to_string(m_weatherStation.size()) + ")\n");
     		resp.append_body("Weather Stations:\n");
@@ -87,17 +84,18 @@ public:
 			{
         		resp.append_body(std::to_string(i + 1) + ". ");
         		const auto &station = m_weatherStation[i];
-        		resp.append_body("ID: " + station.m_ID +
-                        		" Date: " + station.m_Date +
-                         		" Time: " + station.m_Time +
-                         		" PlaceName: " + station.m_locationName +
-                         		" Lat: " + station.m_Lat +
-                         		" Lon: " + station.m_Lon +
-                         		" Temperature: " + std::to_string(station.m_Temperature) + // konvertering fra float til string
-                         		" Humidity: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string*/
-			return resp.done();
+        		resp.append_body("ID: " + station.m_ID + "\n" +
+                        		" Date: " + station.m_Date + "\n" +
+                         		" Time: " + station.m_Time + "\n" +
+                         		" PlaceName: " + station.m_locationName + "\n" +
+                         		" Lat: " + station.m_Lat + "\n" +
+                         		" Lon: " + station.m_Lon + "\n" +
+                         		" Temperature: " + std::to_string(station.m_Temperature) + "\n" +// konvertering fra float til string
+                         		" Humidity: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string
+			}
+			return resp.done();			
     	}
-	
+
 private:
     weatherStation_collection_t &m_weatherStation;
 
