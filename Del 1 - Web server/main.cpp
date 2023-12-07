@@ -1,31 +1,33 @@
 #include <iostream>
 #include <restinio/all.hpp>
 #include <json_dto/pub.hpp>
+#include <vector>
 
 namespace rr = restinio::router;
 using router_t = rr::express_router_t<>;
 
 
-struct weather_t {
-    weather_t() = default;
+struct weatherStation_t
+{
+    weatherStation_t() = default;
 
-	weather_t(
+	weatherStation_t(
 		std::string ID, 
         std::string Date,
         std::string Time,
-        std::string Name,
+        std::string locationName,
         std::string Lat,
         std::string Lon,
-        std::string Temperature,
-        std::string Humidity ) 
+        float Temperature,
+        int Humidity ) 
 		:	m_ID{ std::move( ID ) }
 		,	m_Date{ std::move( Date ) }
 		,	m_Time{ std::move( Time ) }    
-		,	m_Name{ std::move( Name ) }    
+		,	m_locationName{ std::move( locationName ) }    
 		,	m_Lat{ std::move( Lat ) }    
 		,	m_Lon{ std::move( Lon ) }    
-		,	m_Temperature{ std::move( Temperature ) }    
-		,	m_Humidity{ std::move( Humidity ) }    
+		,	m_Temperature{ Temperature}    
+		,	m_Humidity{ Humidity}    
 	{}
 
 	template < typename JSON_IO >
@@ -36,41 +38,42 @@ struct weather_t {
 			& json_dto::mandatory( "ID", m_ID )
 			& json_dto::mandatory( "Date", m_Date )
 			& json_dto::mandatory( "Time", m_Time )
-			& json_dto::mandatory( "Name", m_Name )
+			& json_dto::mandatory( "LocationName", m_locationName )
 			& json_dto::mandatory( "Lat", m_Lat )
 			& json_dto::mandatory( "Lon", m_Lon )
 			& json_dto::mandatory( "Temperature", m_Temperature )
-			& json_dto::mandatory( "Humidity", m_Humidity );
+			& json_dto::mandatory( "Humidity in %", m_Humidity );
 	}
 
 	std::string m_ID;
 	std::string m_Date;
 	std::string m_Time;
-	std::string m_Name;
+	std::string m_locationName;
 	std::string m_Lat;
 	std::string m_Lon;
-	std::string m_Temperature;
-	std::string m_Humidity;
+	float m_Temperature;
+	int m_Humidity;
 };
 
-using weather_collection_t = std::vector< weather_t >;
+using weatherStation_collection_t = std::vector< weatherStation_t >;
 
-class weather_handler_t 
+class weatherStation_handler_t 
 {
 public:
-    explicit weather_handler_t(weather_collection_t &weathers)
-        : m_weathers(weathers) {}
+    explicit weatherStation_handler_t(weatherStation_collection_t &weatherStation)
+        : m_weatherStation(weatherStation)
+	{}
 
-    auto on_weather_list(
+	auto on_weatherStation_list(
 		const restinio::request_handle_t &req, rr::route_params_t) const 
 		{
         auto resp = init_resp(req->create_response());
-        resp.set_body(json_dto::to_json(m_weathers));
+        resp.set_body(json_dto::to_json(m_weatherStation));
         return resp.done();
     }
 
 private:
-    weather_collection_t &m_weathers;
+    weatherStation_collection_t &m_weatherStation;
 
 	template < typename RESP >
 	static RESP
@@ -92,9 +95,9 @@ private:
 	}
 };
 
-auto server_handler(weather_collection_t &weather_collection) {
+auto server_handler(weatherStation_collection_t &weatherStation_collection) {
     auto router = std::make_unique<router_t>();
-    auto handler = std::make_shared<weather_handler_t>(std::ref(weather_collection));
+    auto handler = std::make_shared<weatherStation_handler_t>(std::ref(weatherStation_collection));
 
     auto by = [&](auto method) {
         using namespace std::placeholders;
@@ -102,7 +105,7 @@ auto server_handler(weather_collection_t &weather_collection) {
     };
 
     // Handlers for '/' path.
-    router->http_get("/", by(&weather_handler_t::on_weather_list));
+    router->http_get("/", by(&weatherStation_handler_t::on_weatherStation_list));
     return router;
 }
 
@@ -116,15 +119,16 @@ int main() {
                 restinio::single_threaded_ostream_logger_t,
                 router_t>;
 
-        weather_collection_t weather_collection {
-            // Initial weather data.
-            {"1", "20211105", "12:15", "Aarhus N", "13.692", "19.438", "13.1", "70%"}
+        weatherStation_collection_t weatherStation_collection {
+				// Initial weather data.
+            	{"1", "20211105", "12:15", "Aarhus N", "13.692", "19.438", 13.1, 70}
+            
         };
 
         restinio::run(
             restinio::on_this_thread<traits_t>()
                 .address("localhost")
-                .request_handler(server_handler(weather_collection))
+                .request_handler(server_handler(weatherStation_collection))
                 .read_next_http_message_timelimit(10s)
                 .write_http_response_timelimit(1s)
                 .handle_request_timeout(1s));
