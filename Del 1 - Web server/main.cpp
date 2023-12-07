@@ -71,14 +71,33 @@ public:
     {}
 
     // Handler funktion til at behandle en forespørgsel for weatherStation data
-    auto on_weatherStation_list(
-        const restinio::request_handle_t &req, rr::route_params_t) const
-    {
-        auto resp = init_resp(req->create_response());
-        resp.set_body(json_dto::to_json(m_weatherStation));
-        return resp.done();
-    }
+	auto on_weatherStation_list(
+		const restinio::request_handle_t &req, rr::route_params_t) const 
+		{
+			auto resp = init_resp(req->create_response());
 
+			// JSON-formateret svar.
+    		resp.set_body(json_dto::to_json(m_weatherStation));
+			
+			/*// Menneskevenlig læsning.
+			resp.set_body("weatherStation collection (weatherStation count: " +
+                  std::to_string(m_weatherStation.size()) + ")\n");
+    		resp.append_body("Weather Stations:\n");
+    		for (std::size_t i = 0; i < m_weatherStation.size(); ++i)
+			{
+        		resp.append_body(std::to_string(i + 1) + ". ");
+        		const auto &station = m_weatherStation[i];
+        		resp.append_body("ID: " + station.m_ID +
+                        		" Date: " + station.m_Date +
+                         		" Time: " + station.m_Time +
+                         		" PlaceName: " + station.m_locationName +
+                         		" Lat: " + station.m_Lat +
+                         		" Lon: " + station.m_Lon +
+                         		" Temperature: " + std::to_string(station.m_Temperature) + // konvertering fra float til string
+                         		" Humidity: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string*/
+			return resp.done();
+    	}
+	
 private:
     weatherStation_collection_t &m_weatherStation;
 
