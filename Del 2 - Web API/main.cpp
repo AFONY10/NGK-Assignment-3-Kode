@@ -227,6 +227,7 @@ auto server_handler(weatherStation_collection_t &weatherStation_collection)
     // Handler for '/' path
     router->http_get("/", by(&weatherStation_handler_t::on_weatherStation_list));
 	router->http_post( "/", by( &weatherStation_handler_t::on_weatherStation_addNew ) );
+	router->http_put( "/", by( &weatherStation_handler_t::on_weatherStation_addUpdate ) );
 
 	// Handlers for '/three' path
 	router->http_get("/three", by(&weatherStation_handler_t::on_weatherStation_getThree ) );
@@ -234,8 +235,7 @@ auto server_handler(weatherStation_collection_t &weatherStation_collection)
 	// Handlers for '/date/:date' path.
 	router->http_get( "/Date/:Date", by( &weatherStation_handler_t::on_weatherStation_getDate ) );
 
-	// Handlers for update path
-	router->http_put( "/", by( &weatherStation_handler_t::on_weatherStation_addUpdate ) );
+	// Handlers for '/id/:ID' path
 	router->http_put( "/id/:ID", by( &weatherStation_handler_t::on_weatherStation_addUpdate));
 
     return router;

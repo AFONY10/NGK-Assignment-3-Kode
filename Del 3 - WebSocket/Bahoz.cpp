@@ -1,4 +1,3 @@
-Bassam Salou
 #include <iostream>
 
 #include <restinio/all.hpp>
@@ -94,6 +93,27 @@ public :
 		return resp.done();
 	}
 
+	// Handler-funktion for at håndtere HTTP POST-anmodninger til at tilføje ny vejrdata.
+    auto on_new_weather(const restinio::request_handle_t &req, rr::route_params_t)
+    {
+		auto resp = init_resp(req->create_response());
+
+		try
+		{
+		  // Analyserer JSON-data fra anmodningen og tilføjer det til vejrdatasamlingen.
+		  m_weathers.emplace_back(json_dto::from_json<weather_t>(req->body()));
+		  
+		  // Sender besked til WebSocket-klienter om den nye data.
+		  sendMessage("POST: id =" + json_dto::from_json<weather_t>(req->body()).m_ID);
+		}
+		catch (const std::exception &)
+		{
+		  mark_as_bad_request(resp);
+		}
+
+		return resp.done();
+    }
+
 	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/three". Returnerer de seneste tre vejrposter.
 	auto on_three_get(const restinio::request_handle_t &req, rr::route_params_t params)
 	{
@@ -150,27 +170,6 @@ public :
 				
 		return resp.done();
 	}
-	
-	// Handler-funktion for at håndtere HTTP POST-anmodninger til at tilføje ny vejrdata.
-    auto on_new_weather(const restinio::request_handle_t &req, rr::route_params_t)
-    {
-		auto resp = init_resp(req->create_response());
-
-		try
-		{
-		  // Analyserer JSON-data fra anmodningen og tilføjer det til vejrdatasamlingen.
-		  m_weathers.emplace_back(json_dto::from_json<weather_t>(req->body()));
-		  
-		  // Sender besked til WebSocket-klienter om den nye data.
-		  sendMessage("POST: id =" + json_dto::from_json<weather_t>(req->body()).m_ID);
-		}
-		catch (const std::exception &)
-		{
-		  mark_as_bad_request(resp);
-		}
-
-		return resp.done();
-    }
 	
 	// Handler-funktion for at håndtere HTTP PUT-anmodninger til at opdatere eksisterende vejrdata.
 	auto on_weather_update(
@@ -238,6 +237,18 @@ public :
         return restinio::request_rejected();
     }
 	
+	// Handler-funktion for at håndtere HTTP OPTIONS-anmodninger.
+	auto options(restinio::request_handle_t req, restinio::router::route_params_t)
+	{
+		// Svarer på HTTP OPTIONS-anmodninger med CORS-headers.
+		const auto methods="OPTIONS, GET, POST, PUT, PATCH, DELETE";
+		auto resp=init_resp(req ->create_response() );
+		resp.append_header(restinio::http_field::access_control_allow_methods,methods);
+		resp.append_header(restinio::http_field::access_control_allow_headers,"content-type");
+		resp.append_header(restinio::http_field::access_control_max_age, "86400");
+		return resp.done();
+	}
+
 	// Handler-funktion for at håndtere HTTP DELETE-anmodninger til at slette vejrdata.
 	auto on_weather_delete(
 		const restinio::request_handle_t& req, rr::route_params_t params )
@@ -262,23 +273,11 @@ public :
         return resp.done();
     }
 
-	// Handler-funktion for at håndtere HTTP OPTIONS-anmodninger.
-	auto options(restinio::request_handle_t req, restinio::router::route_params_t)
-	{
-		// Svarer på HTTP OPTIONS-anmodninger med CORS-headers.
-		const auto methods="OPTIONS, GET, POST, PUT, PATCH, DELETE";
-		auto resp=init_resp(req ->create_response() );
-		resp.append_header(restinio::http_field::access_control_allow_methods,methods);
-		resp.append_header(restinio::http_field::access_control_allow_headers,"content-type");
-		resp.append_header(restinio::http_field::access_control_max_age, "86400");
-		return resp.done();
-	}
     
 private :
 	// Reference til samlingen af vejrdata.
 	weather_collection_t & m_weathers;
-	// Registry for WebSocket-håndtag.
-    ws_registry_t   m_registry;
+
 
 	// Marker responsen som en fejl ved en ugyldig anmodning.
 	template < typename RESP >
@@ -301,7 +300,9 @@ private :
 	}
 
 	// Send besked til alle tilsluttede WebSocket-klienter.
-    void sendMessage(std::string message)
+    // Registry for WebSocket-håndtag.
+    ws_registry_t   m_registry;
+	void sendMessage(std::string message)
     {
         for (auto [k, v] : m_registry)
             v -> send_message(rws::final_frame, rws::opcode_t::text_frame, message);
@@ -325,37 +326,37 @@ auto server_handler( weather_collection_t & weather_collection )
 		};
         
 	// Handlers for '/' path.
-	router->http_get( "/", by( &weather_handler_t::on_weather_list ) );
+	router->http_get("/", by(&weather_handler_t::on_weather_list ) );
 	router->http_post( "/", by( &weather_handler_t::on_new_weather ) );
-    router->add_handler(restinio::http_method_options(), "/", by(&weather_handler_t::options));
-
-	
-	// Handler for websocket//
-    router->http_get("/chat", by(&weather_handler_t::on_live_update));
+    router->http_put("/", by(&weather_handler_t::on_weather_update));
+	router->add_handler(restinio::http_method_options(), "/", by(&weather_handler_t::options));
    
     // Handlers for '/three' path
 	router->http_get("/three", by(&weather_handler_t::on_three_get ) );
     router->add_handler(restinio::http_method_options(), "/three", by(&weather_handler_t::options));
+
+	// Handlers for '/date/:date' path.
+	router->http_get( "/Date/:Date", by( &weather_handler_t::on_date_get ) );
+    router->add_handler(restinio::http_method_options(), "/Date/:Date", by(&weather_handler_t::options));
+    
+	// Handlers for '/id/:ID' path
+	router-> http_put(R"(/:ID(\d+))", by(&weather_handler_t::on_weather_update));
+	router->add_handler(restinio::http_method_options(), R"(/:ID(\d+))", by(&weather_handler_t::options));
+
+	// Handler for websocket//
+    router->http_get("/chat", by(&weather_handler_t::on_live_update));
+
+
 	
+    //Handler for delete//
+    router->http_delete(R"(/:ID(\d+))", by(&weather_handler_t::on_weather_delete));
+    
 	// Disable all other methods for '/'.
 	router->add_handler(
 			restinio::router::none_of_methods(
 					restinio::http_method_get(), restinio::http_method_post(), restinio::http_method_options()),
 			"/", method_not_allowed );
 
-	// Handlers for '/date/:date' path.
-	router->http_get( "/Date/:Date", by( &weather_handler_t::on_date_get ) );
-    router->add_handler(restinio::http_method_options(), "/Date/:Date", by(&weather_handler_t::options));
-    
-    //Handlers for creating/updating data//
-    router-> http_put(R"(/:ID(\d+))", by(&weather_handler_t::on_weather_update));
-	router->http_put("/", by(&weather_handler_t::on_weather_update));
-    
-	router->add_handler(restinio::http_method_options(), R"(/:ID(\d+))", by(&weather_handler_t::options));
-	
-    //Handler for delete//
-    router->http_delete(R"(/:ID(\d+))", by(&weather_handler_t::on_weather_delete));
-    	
     return router;
 }
 

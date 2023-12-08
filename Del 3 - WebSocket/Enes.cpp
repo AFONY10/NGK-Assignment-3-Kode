@@ -5,6 +5,18 @@
 #include <json_dto/pub.hpp>
 #include <restinio/websocket/websocket.hpp>
 
+namespace rr = restinio::router;
+using router_t = rr::express_router_t<>;
+
+//For WebSocket
+namespace rws = restinio::websocket::basic;
+using traits_t =
+restinio::traits_t<
+restinio::asio_timer_manager_t,
+restinio::single_threaded_ostream_logger_t,
+router_t >;
+using ws_registry_t = std::map< std::uint64_t, rws::ws_handle_t >;
+
 struct place_t
 {
 	place_t() = default;
@@ -76,18 +88,6 @@ struct weatherStation_t
 
 using weatherStation_collection_t = std::vector< weatherStation_t >;
 
-namespace rr = restinio::router;
-using router_t = rr::express_router_t<>;
-
-
-//For WebSocket
-namespace rws = restinio::websocket::basic;
-using traits_t =
-restinio::traits_t<
-restinio::asio_timer_manager_t,
-restinio::single_threaded_ostream_logger_t,
-router_t >;
-using ws_registry_t = std::map< std::uint64_t, rws::ws_handle_t >;
 
 
 class weatherStations_handler_t
