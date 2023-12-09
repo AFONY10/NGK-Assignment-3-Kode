@@ -345,7 +345,7 @@ auto server_handler(weatherStation_collection_t &weatherStation_collection)
 	// Handlers for '/id/:ID' path
 	router->http_put( "/id/:ID", by( &weatherStation_handler_t::on_weatherStation_addUpdate));
 	router->http_put( R"(/:ID(\d+))", by( &weatherStation_handler_t::on_weatherStation_addUpdate)); // added for client interaction
-	router->add_handler(restinio::http_method_options(), R"(/:ID(\d+))", by(&weatherStation_handler_t::weatherStation_options));
+	router->add_handler(restinio::http_method_options(), R"(/:ID(\d+))", by(&weatherStation_handler_t::weatherStation_options)); // Enables CORS for ID routing
 
 	// Handler for WebSocket
     router->http_get("/chat", by(&weatherStation_handler_t::on_weatherStation_liveUpdate)); // Routing for WebSocket
@@ -357,7 +357,7 @@ auto server_handler(weatherStation_collection_t &weatherStation_collection)
 	// Disable all other methods for '/'.
 	router->add_handler(
 			restinio::router::none_of_methods(
-					restinio::http_method_get(), restinio::http_method_post(), restinio::http_method_options()),
+					restinio::http_method_get(), restinio::http_method_post(), restinio::http_method_delete(), restinio::http_method_options()),
 			"/", method_not_allowed );
 
 
