@@ -81,13 +81,13 @@ public:
 	weatherStation_handler_t( const weatherStation_handler_t & ) = delete;
 	weatherStation_handler_t( weatherStation_handler_t && ) = delete;
 
-    // Handler-function til at behandle en forespørgsel for weatherStation data (Opgave 1)
+    // Handler-function to handle request for weatherStation data (Opgave 1)
 	auto on_weatherStation_list(
 		const restinio::request_handle_t &req, rr::route_params_t) const 
 		{
 			auto resp = init_resp(req->create_response());
 
-			// JSON-formateret svar.
+			// JSON-formated respons.
     		resp.set_body(json_dto::to_json(m_weatherStation));
 			return resp.done();
     	}
@@ -112,7 +112,7 @@ public:
 		return resp.done();
     }
 
-	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/three". Returnerer de seneste tre vejrposter. (Opgave 2.2)
+	// Handler-funktion for handling HTTP GET-requests for "/three". Returns last three weatherdata. (Opgave 2.2)
 	auto on_weatherStation_getThree(const restinio::request_handle_t &req, rr::route_params_t params)
 	{
 		auto resp = init_resp(req->create_response());
@@ -123,7 +123,7 @@ public:
             
 			int i=0;
 
-			// Itererer gennem de seneste tre vejrposter.
+			// Iterates through the last three weather data.
 			for (auto iter = m_weatherStation.rbegin(); iter != m_weatherStation.rend() && (i !=3); ++iter, ++i) 
 			{
 			  weatherStation_three.push_back(*iter);
@@ -139,7 +139,7 @@ public:
 		return resp.done();
 	}
 
-	// Handler-funktion for at håndtere HTTP GET-anmodninger til "/Date/:Date". Returnerer vejrdata for en bestemt dato. (Opgave 2.2)
+	// Handler-function for handling HTTP GET-requests for "/Date/:Date". Returns data for given Date. (Opgave 2.2)
 	auto on_weatherStation_getDate(const restinio::request_handle_t& req, rr::route_params_t params )
 	{
 		auto resp = init_resp( req->create_response() );
@@ -147,10 +147,10 @@ public:
 		{
 			std::vector<weatherStation_t> weatherStation_date;
 
-			// Henter dato-parameteren fra anmodningen.
+			// Gets date-parameter from request.
 			auto Date = restinio::utils::unescape_percent_encoding( params[ "Date" ] );
 			
-			// Filtrer vejrdata baseret på den angivne dato.
+			// Filters data based on date
 			for( std::size_t i=0; i < m_weatherStation.size(); ++i)
 			{
 				const auto & b = m_weatherStation[i];
@@ -276,7 +276,7 @@ public:
 private:
     weatherStation_collection_t &m_weatherStation;
 
-    // Initializing respons with different headers
+    // Initializing respons with necessary headers
     template <typename RESP>
     static RESP
 

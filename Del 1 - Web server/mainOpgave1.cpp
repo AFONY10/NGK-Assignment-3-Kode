@@ -7,17 +7,17 @@ namespace rr = restinio::router;
 using router_t = rr::express_router_t<>;
 
 
-// Definition af structen weatherStation_t
+// Implementation of struct weatherStation_t
 struct weatherStation_t
 {
     weatherStation_t() = default;
 
-    // Konstruktør til weatherStation_t med medlemmerne
+    // Constructor for weatherStation_t with members
     weatherStation_t(
         std::string ID,
         std::string Date,
         std::string Time,
-		// Place er inkorporeret heri, giver mere simpel kode
+		// Place is incorperated here, which gives more simple code
         std::string PlaceName,
         std::string Lat,
         std::string Lon,
@@ -33,7 +33,7 @@ struct weatherStation_t
           m_Humidity{Humidity}
     {}
 
-    // JSON I/O funktion til at arbejde med json_dto
+    // JSON I/O funktion to work with json_dto
     template <typename JSON_IO>
     void
     json_io(JSON_IO &io)
@@ -49,7 +49,7 @@ struct weatherStation_t
             & json_dto::mandatory("Humidity in %", m_Humidity);
     }
 
-    // Medlemmer af structen weatherStation_t
+    // Members of struct weatherStation_t
     std::string m_ID;
     std::string m_Date;
     std::string m_Time;
@@ -60,10 +60,10 @@ struct weatherStation_t
     int m_Humidity;
 };
 
-// Definition af vektor af weatherStation_t
+// Definition of vector for weatherStation_t
 using weatherStation_collection_t = std::vector<weatherStation_t>;
 
-// Klasse til at håndtere weatherStation
+// Class to handle weatherStation
 class weatherStation_handler_t
 {
 public:
@@ -71,13 +71,13 @@ public:
         : m_weatherStation(weatherStation)
     {}
 
-    // Handler funktion til at behandle en forespørgsel for weatherStation data
+   // Handler-function to handle request for weatherStation data (Opgave 1)
 	auto on_weatherStation_list(
 		const restinio::request_handle_t &req, rr::route_params_t) const 
 		{
 			auto resp = init_resp(req->create_response());
 
-			// Menneskevenlig læsning/hardcoding af output
+			// Hardcoded output
 			resp.set_body("weatherStation collection (weatherStation count: " +
                   std::to_string(m_weatherStation.size()) + ")\n");
     		resp.append_body("Weather Stations:\n");
@@ -91,8 +91,8 @@ public:
                          		" PlaceName: " + station.m_PlaceName + "\n" +
                          		" Lat: " + station.m_Lat + "\n" +
                          		" Lon: " + station.m_Lon + "\n" +
-                         		" Temperature: " + std::to_string(station.m_Temperature) + "\n" +// konvertering fra float til string
-                         		" Humidity in %: " + std::to_string(station.m_Humidity) + "\n"); // konvertering fra int til string
+                         		" Temperature: " + std::to_string(station.m_Temperature) + "\n" + // Converts from float to string
+                         		" Humidity in %: " + std::to_string(station.m_Humidity) + "\n"); // Converts from int to string
 			}
 			return resp.done();			
     	}
@@ -100,7 +100,7 @@ public:
 private:
     weatherStation_collection_t &m_weatherStation;
 
-    // Initialiser respons med de nødvendige headers
+    // Initializing respons with necessary headers
     template <typename RESP>
     static RESP
     init_resp(RESP resp)
@@ -113,7 +113,7 @@ private:
         return resp;
     }
 
-    // Funktion til at markere en forespørgsel som dårlig
+    // Function to mark request as bad request
     template <typename RESP>
     static void
     mark_as_bad_request(RESP &resp)
@@ -122,7 +122,7 @@ private:
     }
 };
 
-// Funktion til at oprette serverens håndtering af weatherStation data
+// Function to handle server data
 auto server_handler(weatherStation_collection_t &weatherStation_collection)
 {
     auto router = std::make_unique<router_t>();
@@ -138,14 +138,14 @@ auto server_handler(weatherStation_collection_t &weatherStation_collection)
     return router;
 }
 
-// Main funktionen
+// Main-function
 int main()
 {
     using namespace std::chrono;
 
     try
     {
-        // Definerer traits for restinio serveren
+        // Defining traits for restinio server
         using traits_t =
             restinio::traits_t<
                 restinio::asio_timer_manager_t,
@@ -157,7 +157,7 @@ int main()
             {"1", "20231207", "12:15", "Aarhus N", "13.692", "19.438", 13.1, 70}
         };
 
-        // Kør restinio serveren med definerede traits og konfiguration
+        // Run restinio server with initialised traits and configuration
         restinio::run(
             restinio::on_this_thread<traits_t>()
                 .address("localhost")
