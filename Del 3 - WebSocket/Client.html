@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css">
+
+    <script type="text/javascript">
+        // WebSocket for communication with the server
+        const socket = new WebSocket('ws://localhost:8080/chat');
+
+        // Eventlistener for when the WebSocket connection opens
+        socket.addEventListener('open', function (event) {
+
+            // send message code 
+            socket.send('Hello server');
+        });
+
+
+        socket.addEventListener('message', function (message) {
+
+            // Wait for message
+            document.getElementById("wsupdate").innerHTML = message.data
+
+        });
+
+        // Function to getData
+        function getData() {
+            axios.get('http://localhost:8080')
+                .then((response) => {
+                    setTable(response.data);
+                });
+        }
+
+        // Function to send data
+        function sendData() {
+            axios.post("http://localhost:8080", 
+            {
+                "ID": document.getElementById("ID").value,
+                "Date": document.getElementById("Date").value,
+                "Time": document.getElementById("Time").value,
+                "PlaceName": document.getElementById("PlaceName").value,
+                "Lat": document.getElementById("Lat").value,
+                "Lon": document.getElementById("Lon").value,
+                "Temperature": document.getElementById("Temperature").valueAsNumber,
+                "Humidity in %": document.getElementById("Humidity in %").valueAsNumber
+            })
+                .then((response) => { })
+                .catch((error) => alert("Try again"));
+
+            socket.send('ID: ' + document.getElementById("ID").value + ' added.');
+        }
+
+        // Function to update data
+        function updateData() {
+            var idnumber = document.getElementById("ID").value;
+            console.log('http://localhost:8080/'+document.getElementById("ID").value)
+
+            axios.put('http://localhost:8080/' + idnumber, 
+            {
+                "ID": document.getElementById("ID").value,
+                "Date": document.getElementById("Date").value,
+                "Time": document.getElementById("Time").value,
+                "PlaceName": document.getElementById("PlaceName").value,
+                "Lat": document.getElementById("Lat").value,
+                "Lon": document.getElementById("Lon").value,
+                "Temperature": document.getElementById("Temperature").valueAsNumber,
+                "Humidity in %": document.getElementById("Humidity in %").valueAsNumber
+            }
+            )
+            .then((response) => { })
+            .catch((error) => alert("Try again"));
+
+            socket.send('ID: ' + document.getElementById("ID").value + ' updated.');
+        }
+
+        // Function to delete data
+        function deleteData(id) {
+            var idnumber = document.getElementById("ID").value;
+            console.log("Get by ID")
+            console.log('http://localhost:8080/' + idnumber)
+
+            axios.delete('http://localhost:8080/' + idnumber, 
+                {
+                    data: {
+                        "ID": document.getElementById("ID").value,
+                        "Date": document.getElementById("Date").value,
+                        "Time": document.getElementById("Time").value,
+                        "PlaceName": document.getElementById("PlaceName").value,
+                        "Lat": document.getElementById("Lat").value,
+                        "Lon": document.getElementById("Lon").value,
+                        "Temperature": document.getElementById("Temperature").valueAsNumber,
+                        "Humidity in %": document.getElementById("Humidity in %").valueAsNumber
+                    }
+                })
+                .then(response => { })
+                .catch(error => alert('Try again'));
+
+            socket.send('ID: ' + document.getElementById("ID").value + ' deleted.');
+        }
+
+
+        // Function to set up Tabulator table with data
+        function setTable(data) {
+            $("#tabel").tabulator({
+                layout: "fitDataFill",
+                height: "311px",
+                columns: [
+                    { title: "ID", field: "ID" },
+                    { title: "Date", field: "Date" },
+                    { title: "Time", field: "Time" },
+                    { title: "PlaceName", field: "PlaceName" },
+                    { title: "Lat", field: "Lat" },
+                    { title: "Lon", field: "Lon" },
+                    { title: "Temperature", field: "Temperature" },
+                    { title: "Humidity in %", field: "Humidity in %" }
+                ],
+
+
+            });
+            $("#tabel").tabulator("setData", data);
+        }
+
+    </script>
+</head>
+
+<!-- Visual design, doesn't affect functionality -->
+<head>
+    <meta charset="UTF-8">
+    <meta PlaceName="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            display: inline-block;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #opdatering {
+            color: green;
+            font-style: italic;
+        }
+
+        #table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <h1>Weather Station</h1>
+
+    <!-- Formular for insertion of data -->
+    <label for="ID">ID:</label><input id="ID" type="text">
+    <label for="Date">Date:</label><input id="Date" type="text">
+    <label for="Time">Time:</label><input id="Time" type="text">
+    <label for="PlaceName">PlaceName:</label><input id="PlaceName" type="text">
+    <label for="Lat">Lat:</label><input id="Lat" type="text">
+    <label for="Lon">Lon:</label><input id="Lon" type="text">
+    <label for="Temperature">Temperature:</label><input id="Temperature" type="number">
+    <label for="Humidity in %">Humidity in %:</label><input id="Humidity in %" type="number">
+
+    <!-- Buttons for calling WebSocket functions -->
+    <button onclick="getData()">Get Data</button>
+    <button onclick="sendData()">Add Data</button>
+
+    <!-- Table to show data -->
+    <div id="tabel"></div>
+
+    <!-- Formular to change data based on ID -->
+    <label for="lognr">Change for ID:</label><input id="lognr" type="text">
+    <button onclick="updateData(document.getElementById('lognr').value)">Update Data</button>
+    <button onclick="deleteData(document.getElementById('lognr').value)">Delete Data</button>
+
+    <br>
+    <b> Action: </b>
+    <i id="update">*Nothing*</i><br>
+
+    <div id="table"> </div>
+
+    <!-- Status message -->
+    <p><b>Handling:</b> <i id="Updating">*Ingenting*</i></p>
+    <div id="wsupdate"></div>
+</body>
+
+</html>
