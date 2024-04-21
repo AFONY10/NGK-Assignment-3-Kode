@@ -1,3 +1,4 @@
 # NGK-Assignment-3
-Kodefiler og videoer fra opgaverne - vedhæftet her.
-mappen Del 3 - WebSocket indeholder den endelige main-fil + HTML-fil
+This is a bigger assignment hand-in exercise we've made in the 3rd semester of my bachelor in softwareengineering.
+
+We have been using Rest library for C++ in order to make the Websocket and Web API, while our client code 
